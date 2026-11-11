@@ -15,6 +15,13 @@ sealed interface TunnelErrorEvent {
 
     data class SignInRequired(val tunnelId: Int) : TunnelErrorEvent
 
+    /** The server did not hand out a connection, [detail] is its reason if it gave one. */
+    data class ProvisioningFailed(
+        val tunnelId: Int,
+        val detail: String?,
+        val needsSignIn: Boolean,
+    ) : TunnelErrorEvent
+
     companion object {
         fun from(throwable: Throwable, id: Int): TunnelErrorEvent {
             return when (throwable) {

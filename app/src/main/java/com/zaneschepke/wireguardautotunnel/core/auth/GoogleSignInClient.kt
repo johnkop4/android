@@ -1,7 +1,6 @@
 package com.zaneschepke.wireguardautotunnel.core.auth
 
 import android.content.Context
-import android.util.Base64
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.Credential
 import androidx.credentials.CredentialManager
@@ -16,10 +15,10 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.zaneschepke.wireguardautotunnel.BuildConfig
 import com.zaneschepke.wireguardautotunnel.core.orchestration.AutoTunnelCoordinator
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
+import com.zaneschepke.wireguardautotunnel.core.vps.VpsProvisioner
 import com.zaneschepke.wireguardautotunnel.domain.model.AuthUser
 import com.zaneschepke.wireguardautotunnel.domain.repository.AuthRepository
 import kotlinx.coroutines.CancellationException
-import org.json.JSONObject
 import timber.log.Timber
 
 sealed interface SignInResult {
@@ -42,11 +41,13 @@ class GoogleSignInClient(
     private val authRepository: AuthRepository,
     private val tunnelCoordinator: TunnelCoordinator,
     private val autoTunnelCoordinator: AutoTunnelCoordinator,
+    private val tokenProvider: GoogleTokenProvider,
+    private val vpsProvisioner: VpsProvisioner,
 ) {
 
     /** [activityContext] must be an Activity context, the account picker is shown on top of it. */
     suspend fun signIn(activityContext: Context): SignInResult {
-        val clientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
+        val clientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.trim()
         if (clientId.isBlank()) return SignInResult.NotConfigured
 
         val credentialManager = CredentialManager.create(activityContext)
@@ -88,6 +89,8 @@ class GoogleSignInClient(
         runCatching { autoTunnelCoordinator.disable() }.onFailure { Timber.e(it) }
         runCatching { tunnelCoordinator.stopActiveTunnels() }.onFailure { Timber.e(it) }
         authRepository.clear()
+        tokenProvider.clear()
+        runCatching { vpsProvisioner.onSignedOut() }.onFailure { Timber.e(it) }
         try {
             CredentialManager.create(appContext).clearCredentialState(ClearCredentialStateRequest())
         } catch (e: CancellationException) {
@@ -113,7 +116,9 @@ class GoogleSignInClient(
             return null
         }
         val google = GoogleIdTokenCredential.createFrom(data)
-        val claims = decodeClaims(google.idToken)
+        // Kept for the server, which verifies it when the tunnel is started
+        tokenProvider.remember(google.idToken)
+        val claims = GoogleTokenProvider.claims(google.idToken)
         val email = claims?.optString("email").takeUnless { it.isNullOrBlank() } ?: google.id
         return AuthUser(
             // "sub" is the stable Google account id, the email can change
@@ -122,15 +127,4 @@ class GoogleSignInClient(
             displayName = google.displayName,
         )
     }
-
-    // Only reads the claims. The token signature is not verified on device, that is a server job.
-    private fun decodeClaims(idToken: String): JSONObject? =
-        runCatching {
-                val payload = idToken.split(".")[1]
-                val json =
-                    Base64.decode(payload, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
-                JSONObject(String(json, Charsets.UTF_8))
-            }
-            .onFailure { Timber.w(it, "Could not decode id token claims") }
-            .getOrNull()
 }

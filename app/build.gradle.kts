@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.FilterConfiguration
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -73,15 +74,22 @@ configure<ApplicationExtension> {
 
         // VPS project: values are baked in at build time from local.properties (or env vars)
         // so that keys never land in version control.
+        // Read here on every build: the buildSrc LocalProperties helper caches its first read for
+        // the lifetime of the Gradle daemon, so later edits of the file would be ignored.
+        val vpsLocalProperties =
+            Properties().apply {
+                val file = rootProject.file("local.properties")
+                if (file.exists()) file.inputStream().use { load(it) }
+            }
         fun vpsProperty(key: String, default: String = ""): String =
-            (LocalProperties.get(key) ?: System.getenv(key) ?: default)
+            (vpsLocalProperties.getProperty(key) ?: System.getenv(key) ?: default)
+                .trim()
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"")
         listOf(
                 "GOOGLE_WEB_CLIENT_ID" to "",
-                "VPS_WG_PRIVATE_KEY" to "",
-                "VPS_WG_ADDRESS" to "",
-                "VPS_WG_DNS" to "",
+                "VPS_API_URL" to "",
+                "VPS_API_CERT_SHA256" to "",
                 "VPS_WG_PEER_PUBLIC_KEY" to "",
                 "VPS_WG_PRESHARED_KEY" to "",
                 "VPS_WG_ENDPOINT" to "",

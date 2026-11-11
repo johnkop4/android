@@ -7,8 +7,10 @@ import com.zaneschepke.logcatter.LogReader
 import com.zaneschepke.logcatter.LogcatReader
 import com.zaneschepke.wireguardautotunnel.BuildConfig
 import com.zaneschepke.wireguardautotunnel.core.auth.GoogleSignInClient
+import com.zaneschepke.wireguardautotunnel.core.auth.GoogleTokenProvider
 import com.zaneschepke.wireguardautotunnel.core.shortcut.DynamicShortcutManager
 import com.zaneschepke.wireguardautotunnel.core.shortcut.ShortcutManager
+import com.zaneschepke.wireguardautotunnel.core.vps.VpsProvisioner
 import com.zaneschepke.wireguardautotunnel.domain.repository.GlobalEffectRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.SelectedTunnelsRepository
 import com.zaneschepke.wireguardautotunnel.notification.AndroidNotificationService
@@ -69,7 +71,9 @@ val appModule = module {
     }
     singleOf(::AndroidNotificationService) bind NotificationService::class
     single { ServiceManager(androidContext()) }
-    single { GoogleSignInClient(androidContext(), get(), get(), get()) }
+    single { GoogleTokenProvider(androidContext(), get()) }
+    single { VpsProvisioner(get(), get(), get(), get(named(Dispatcher.IO))) }
+    single { GoogleSignInClient(androidContext(), get(), get(), get(), get(), get()) }
 
     singleOf(::GlobalEffectRepository)
 

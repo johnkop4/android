@@ -3,6 +3,7 @@ package com.zaneschepke.wireguardautotunnel.core.orchestration
 import android.content.Context
 import com.zaneschepke.wireguardautotunnel.core.tunnel.TunnelProvider
 import com.zaneschepke.wireguardautotunnel.core.tunnel.VpsTunnel
+import com.zaneschepke.wireguardautotunnel.core.vps.VpsProvisioner
 import com.zaneschepke.wireguardautotunnel.domain.enums.BootstrapDnsProtocol
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
 import com.zaneschepke.wireguardautotunnel.domain.repository.DnsSettingsRepository
@@ -26,6 +27,7 @@ class AppBoostrapCoordinator(
     private val lockdownRepository: LockdownSettingsRepository,
     private val tunnelProvider: TunnelProvider,
     private val dnsSettingsCoordinator: DnsSettingsCoordinator,
+    private val vpsProvisioner: VpsProvisioner,
 ) {
 
     private val _isReady = MutableStateFlow(false)
@@ -75,13 +77,13 @@ class AppBoostrapCoordinator(
     }
 
     /**
-     * Keeps the tunnel list locked to the single hardcoded VPS tunnel. Anything else that found its
+     * Keeps the tunnel list locked to the single VPS tunnel. Anything else that found its
      * way into the database (older installs, a restored backup) is removed.
      */
     private suspend fun ensureVpsTunnel() {
         val expected =
-            VpsTunnel.tunnelConfig().getOrElse {
-                Timber.e(it, "This build has no valid VPS tunnel configuration")
+            vpsProvisioner.expectedTunnelConfig().getOrElse {
+                Timber.e(it, "Could not build the VPS tunnel configuration")
                 null
             }
         val userTunnels = tunnelRepository.getAll().filterNot { it.isGlobalConfig }

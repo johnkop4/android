@@ -88,6 +88,7 @@ import com.zaneschepke.wireguardautotunnel.data.backup.BackupWriteResult
 import com.zaneschepke.wireguardautotunnel.data.backup.DatabaseBackup
 import com.zaneschepke.wireguardautotunnel.data.backup.RestoreResult
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
+import com.zaneschepke.wireguardautotunnel.core.auth.GoogleTokenProvider
 import com.zaneschepke.wireguardautotunnel.domain.model.AuthState
 import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.domain.repository.AppStateRepository
@@ -184,6 +185,7 @@ class MainActivity : AppCompatActivity() {
     private val notificationService: NotificationService by inject()
     private val databaseBackup: DatabaseBackup by inject()
     private val authRepository: AuthRepository by inject()
+    private val tokenProvider: GoogleTokenProvider by inject()
 
     val viewModel by viewModel<SharedAppViewModel>()
     private var pendingBackupPassword: String? = null
@@ -871,6 +873,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        tokenProvider.attach(this)
         networkMonitor.checkPermissionsAndUpdateState()
     }
 

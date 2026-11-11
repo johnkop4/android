@@ -169,6 +169,31 @@ class TunnelEventDispatcher(
                         )
                     }
 
+                    is TunnelErrorEvent.ProvisioningFailed -> {
+                        val message =
+                            if (error.needsSignIn) {
+                                context.getString(R.string.vps_reauth_required)
+                            } else {
+                                listOfNotNull(
+                                        context.getString(R.string.vps_register_failed),
+                                        error.detail,
+                                    )
+                                    .joinToString(": ")
+                            }
+                        showOrNotify(
+                            scope = scope,
+                            foregroundAction = {
+                                globalEffectRepository.post(
+                                    Snackbar(
+                                        message = DynamicString(message),
+                                        type = ToastType.Error,
+                                    )
+                                )
+                            },
+                            backgroundAction = {},
+                        )
+                    }
+
                     is TunnelErrorEvent.SignInRequired -> {
                         showOrNotify(
                             scope = scope,

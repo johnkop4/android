@@ -8,6 +8,8 @@ import com.wgtunnel.parser.ConfigReconciler
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.event.TunnelErrorEvent
 import com.zaneschepke.wireguardautotunnel.core.tunnel.TunnelProvider
+import com.zaneschepke.wireguardautotunnel.core.vps.VpsProvisionException
+import com.zaneschepke.wireguardautotunnel.core.vps.VpsProvisioner
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomDnsSettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelActionSource
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
@@ -59,6 +61,7 @@ class TunnelCoordinator(
     lockdownModeRepository: LockdownSettingsRepository,
     private val appStateRepository: AppStateRepository,
     private val authRepository: AuthRepository,
+    private val vpsProvisioner: VpsProvisioner,
     scope: CoroutineScope,
 ) {
 
@@ -256,15 +259,29 @@ class TunnelCoordinator(
         }
 
     private suspend fun startTunnelInternal(
-        tunnelConfig: TunnelConfig,
+        requestedConfig: TunnelConfig,
         source: TunnelActionSource,
     ) {
         // Every start path (UI, tile, auto-tunnel, boot, remote control) ends up here
         if (!authRepository.isSignedIn()) {
-            Timber.w("Refusing to start tunnel ${tunnelConfig.id}, no signed in user")
-            _errors.emit(TunnelErrorEvent.SignInRequired(tunnelConfig.id))
+            Timber.w("Refusing to start tunnel ${requestedConfig.id}, no signed in user")
+            _errors.emit(TunnelErrorEvent.SignInRequired(requestedConfig.id))
             return
         }
+
+        // The interface address and DNS are handed out by the server for this device's key
+        val tunnelConfig =
+            vpsProvisioner.provision(requestedConfig).getOrElse {
+                val failure = it as? VpsProvisionException
+                _errors.emit(
+                    TunnelErrorEvent.ProvisioningFailed(
+                        tunnelId = requestedConfig.id,
+                        detail = failure?.detail ?: it.message,
+                        needsSignIn = failure?.needsSignIn == true,
+                    )
+                )
+                return
+            }
 
         val snapshot = getSnapshot()
         val settings = snapshot.general

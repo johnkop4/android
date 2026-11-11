@@ -34,6 +34,9 @@ class DataStoreManager(
         val authUserId = stringPreferencesKey("AUTH_USER_ID")
         val authUserEmail = stringPreferencesKey("AUTH_USER_EMAIL")
         val authUserName = stringPreferencesKey("AUTH_USER_NAME")
+        val vpsWgPrivateKey = stringPreferencesKey("VPS_WG_PRIVATE_KEY")
+        val vpsWgKeyOwner = stringPreferencesKey("VPS_WG_KEY_OWNER")
+        val vpsProvision = stringPreferencesKey("VPS_PROVISION")
     }
 
     suspend fun init() {
