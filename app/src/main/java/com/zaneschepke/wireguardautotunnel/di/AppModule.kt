@@ -6,6 +6,7 @@ import android.os.StrictMode
 import com.zaneschepke.logcatter.LogReader
 import com.zaneschepke.logcatter.LogcatReader
 import com.zaneschepke.wireguardautotunnel.BuildConfig
+import com.zaneschepke.wireguardautotunnel.core.auth.GoogleSignInClient
 import com.zaneschepke.wireguardautotunnel.core.shortcut.DynamicShortcutManager
 import com.zaneschepke.wireguardautotunnel.core.shortcut.ShortcutManager
 import com.zaneschepke.wireguardautotunnel.domain.repository.GlobalEffectRepository
@@ -20,7 +21,6 @@ import com.zaneschepke.wireguardautotunnel.viewmodel.AutoTunnelViewModel
 import com.zaneschepke.wireguardautotunnel.viewmodel.ConfigEditViewModel
 import com.zaneschepke.wireguardautotunnel.viewmodel.DnsViewModel
 import com.zaneschepke.wireguardautotunnel.viewmodel.LockdownViewModel
-import com.zaneschepke.wireguardautotunnel.viewmodel.LoggerViewModel
 import com.zaneschepke.wireguardautotunnel.viewmodel.MonitoringViewModel
 import com.zaneschepke.wireguardautotunnel.viewmodel.ProxySettingsViewModel
 import com.zaneschepke.wireguardautotunnel.viewmodel.SettingsViewModel
@@ -69,6 +69,7 @@ val appModule = module {
     }
     singleOf(::AndroidNotificationService) bind NotificationService::class
     single { ServiceManager(androidContext()) }
+    single { GoogleSignInClient(androidContext(), get(), get(), get()) }
 
     singleOf(::GlobalEffectRepository)
 
@@ -82,7 +83,6 @@ val appModule = module {
     viewModel { (id: Int?) -> ConfigEditViewModel(get(), get(), get(), get(), get(), get(), id) }
     viewModelOf(::DnsViewModel)
     viewModelOf(::LockdownViewModel)
-    viewModelOf(::LoggerViewModel)
     viewModelOf(::MonitoringViewModel)
     viewModelOf(::ProxySettingsViewModel)
     viewModelOf(::SettingsViewModel)

@@ -754,6 +754,15 @@
         <item quantity="one">Move %d tunnel</item>
         <item quantity="other">Move %d tunnels</item>
     </plurals>
+    <string name="sign_in_title">Sign in to continue</string>
+    <string name="sign_in_subtitle">A Google account is required to use this app.</string>
+    <string name="sign_in_with_google">Continue with Google</string>
+    <string name="sign_in_failed">Sign-in failed. Please try again.</string>
+    <string name="sign_in_not_configured">Google sign-in is not configured for this build.</string>
+    <string name="sign_in_required">Sign in to start the tunnel</string>
+    <string name="sign_out">Sign out</string>
+    <string name="sign_out_message">The tunnel will be stopped and you will need to sign in again to use the app.</string>
+    <string name="signed_in_as">Signed in as %1$s</string>
     <string name="socks5" translatable="false">SOCKS5</string>
     <string name="http" translatable="false">HTTP</string>
 </resources>

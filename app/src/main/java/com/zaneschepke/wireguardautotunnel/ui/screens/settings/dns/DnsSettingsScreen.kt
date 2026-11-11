@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import com.zaneschepke.networkmonitor.PrivateDnsMode
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.domain.constants.TunnelDns
-import com.zaneschepke.wireguardautotunnel.domain.enums.BootstrapDnsProtocol
 import com.zaneschepke.wireguardautotunnel.domain.enums.ForeignDnsPolicy
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsMode
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelDnsProtocol
@@ -47,7 +46,6 @@ import com.zaneschepke.wireguardautotunnel.ui.common.label.GroupLabel
 import com.zaneschepke.wireguardautotunnel.ui.common.text.DescriptionText
 import com.zaneschepke.wireguardautotunnel.ui.common.textbox.ConfigurationTextBox
 import com.zaneschepke.wireguardautotunnel.ui.screens.settings.dns.components.ProtocolBottomSheet
-import com.zaneschepke.wireguardautotunnel.ui.screens.settings.dns.components.ResolutionMethodBottomSheet
 import com.zaneschepke.wireguardautotunnel.ui.screens.settings.dns.components.SplitSuffixTargetBottomSheet
 import com.zaneschepke.wireguardautotunnel.ui.screens.settings.dns.components.TransitDnsPolicyBottomSheet
 import com.zaneschepke.wireguardautotunnel.ui.screens.settings.dns.components.TunnelDnsModeBottomSheet
@@ -70,7 +68,6 @@ fun DnsSettingsScreen(
     val uiState by viewModel.collectAsState()
     val sharedUiState by sharedViewModel.collectAsState()
     var showAppModeSheet by rememberSaveable { mutableStateOf(false) }
-    var showResolutionMethodSheet by rememberSaveable { mutableStateOf(false) }
     var showProtocolSheet by rememberSaveable { mutableStateOf(false) }
     var showTransitPolicySheet by rememberSaveable { mutableStateOf(false) }
     var showSplitSuffixTargetSheet by rememberSaveable { mutableStateOf(false) }
@@ -96,15 +93,6 @@ fun DnsSettingsScreen(
             uiState.dnsSettings.tunnelDnsMode,
         ) {
             showAppModeSheet = false
-        }
-    }
-
-    if (showResolutionMethodSheet) {
-        ResolutionMethodBottomSheet(
-            onProtocolChange = viewModel::setBootstrapDnsProtocol,
-            protocol = uiState.dnsSettings.bootstrapDnsProtocol,
-        ) {
-            showResolutionMethodSheet = false
         }
     }
 
@@ -211,41 +199,6 @@ fun DnsSettingsScreen(
                     DescriptionText(descriptionText)
                 },
             )
-        }
-        Column {
-            GroupLabel(
-                stringResource(R.string.peer_resolution),
-                Modifier.padding(horizontal = 16.dp),
-            )
-            SurfaceRow(
-                leading = { Icon(Icons.Outlined.Dns, contentDescription = null) },
-                trailing = { modifier ->
-                    IconButton(onClick = { showResolutionMethodSheet = true }, modifier) {
-                        Icon(
-                            Icons.Outlined.ExpandMore,
-                            contentDescription = stringResource(R.string.select),
-                        )
-                    }
-                },
-                title = stringResource(R.string.resolution_method),
-                description = {
-                    DescriptionText(uiState.dnsSettings.bootstrapDnsProtocol.asString(context))
-                },
-                onClick = { showResolutionMethodSheet = true },
-            )
-            AnimatedVisibility(
-                uiState.dnsSettings.bootstrapDnsProtocol != BootstrapDnsProtocol.SYSTEM
-            ) {
-                ConfigurationTextBox(
-                    modifier =
-                        Modifier.padding(horizontal = 16.dp).padding(top = 8.dp).fillMaxWidth(),
-                    hint = stringResource(R.string.dns_endpoint_hint),
-                    label = stringResource(R.string.dns_endpoint_label),
-                    value = uiState.dnsSettings.bootstrapDnsEndpoint ?: "",
-                    isError = uiState.bootstrapEndpointError != null,
-                    onValueChange = viewModel::setBootstrapDnsEndpoint,
-                )
-            }
         }
         Column {
             GroupLabel(stringResource(R.string.tunnel_dns), Modifier.padding(horizontal = 16.dp))

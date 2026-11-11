@@ -638,7 +638,10 @@ class SharedAppViewModel(
         }
     }
 
+    // The tunnel list is locked to the hardcoded VPS tunnel (see VpsTunnel), so every import
+    // path (file, QR, clipboard, URL, intents) is switched off here.
     fun importTunnelConfigs(configs: Map<QuickConfig, TunnelName>) = intent {
+        if (TUNNELS_LOCKED) return@intent
         try {
             val ui = tunnelsUiState.value
             val tunnelConfigs =
@@ -753,7 +756,10 @@ class SharedAppViewModel(
 
     fun clearSelectedTunnels() = intent { selectedTunnelsRepository.clear() }
 
+    // Selection only leads to delete, copy, export and grouping, none of which apply to the
+    // single hardcoded tunnel.
     fun toggleSelectedTunnel(tunnelId: Int) = intent {
+        if (TUNNELS_LOCKED) return@intent
         val ui = tunnelsUiState.value
         val selectedTuns =
             ui.selectedTunnels.toMutableList().apply {
@@ -766,6 +772,7 @@ class SharedAppViewModel(
     }
 
     fun toggleSelectedGroup(groupId: Int) = intent {
+        if (TUNNELS_LOCKED) return@intent
         val ui = tunnelsUiState.value
         val selectedGroups =
             ui.selectedGroups.toMutableList().apply {
@@ -872,6 +879,8 @@ class SharedAppViewModel(
             } else null
         }
 }
+
+private const val TUNNELS_LOCKED = true
 
 private data class ReorderDraft(
     val tunnels: List<TunnelConfig>,

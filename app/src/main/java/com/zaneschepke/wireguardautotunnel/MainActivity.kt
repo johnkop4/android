@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.app.ActivityCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
@@ -87,8 +88,10 @@ import com.zaneschepke.wireguardautotunnel.data.backup.BackupWriteResult
 import com.zaneschepke.wireguardautotunnel.data.backup.DatabaseBackup
 import com.zaneschepke.wireguardautotunnel.data.backup.RestoreResult
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
+import com.zaneschepke.wireguardautotunnel.domain.model.AuthState
 import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.domain.repository.AppStateRepository
+import com.zaneschepke.wireguardautotunnel.domain.repository.AuthRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.TunnelRepository
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.GlobalSideEffect
 import com.zaneschepke.wireguardautotunnel.domain.sideeffect.NotificationPendingAction
@@ -111,6 +114,7 @@ import com.zaneschepke.wireguardautotunnel.ui.navigation.components.BottomNavbar
 import com.zaneschepke.wireguardautotunnel.ui.navigation.components.DynamicTopAppBar
 import com.zaneschepke.wireguardautotunnel.ui.navigation.components.currentRouteAsNavbarState
 import com.zaneschepke.wireguardautotunnel.ui.navigation.functions.rememberNavController
+import com.zaneschepke.wireguardautotunnel.ui.screens.auth.SignInScreen
 import com.zaneschepke.wireguardautotunnel.ui.screens.autotunnel.AutoTunnelScreen
 import com.zaneschepke.wireguardautotunnel.ui.screens.autotunnel.detection.WifiDetectionMethodScreen
 import com.zaneschepke.wireguardautotunnel.ui.screens.autotunnel.disclosure.LocationDisclosureScreen
@@ -126,7 +130,6 @@ import com.zaneschepke.wireguardautotunnel.ui.screens.settings.dns.DnsSettingsSc
 import com.zaneschepke.wireguardautotunnel.ui.screens.settings.globals.TunnelGlobalsScreen
 import com.zaneschepke.wireguardautotunnel.ui.screens.settings.integrations.AndroidIntegrationsScreen
 import com.zaneschepke.wireguardautotunnel.ui.screens.settings.lockdown.LockdownSettingsScreen
-import com.zaneschepke.wireguardautotunnel.ui.screens.settings.logs.LogsScreen
 import com.zaneschepke.wireguardautotunnel.ui.screens.settings.monitoring.MonitoringScreen
 import com.zaneschepke.wireguardautotunnel.ui.screens.settings.proxy.ProxySettingsScreen
 import com.zaneschepke.wireguardautotunnel.ui.screens.settings.recovery.TunnelRecoveryScreen
@@ -170,7 +173,6 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.parameter.parametersOf
 import org.orbitmvi.orbit.compose.collectAsState
-import timber.log.Timber
 import xyz.teamgravity.pin_lock_compose.PinManager
 
 class MainActivity : AppCompatActivity() {
@@ -181,6 +183,7 @@ class MainActivity : AppCompatActivity() {
     private val fileExportCoordinator: FileExportCoordinator by inject()
     private val notificationService: NotificationService by inject()
     private val databaseBackup: DatabaseBackup by inject()
+    private val authRepository: AuthRepository by inject()
 
     val viewModel by viewModel<SharedAppViewModel>()
     private var pendingBackupPassword: String? = null
@@ -224,17 +227,18 @@ class MainActivity : AppCompatActivity() {
         }
         super.onCreate(savedInstanceState)
 
-        handleConfigFileIntent(intent)
-        handleWgDeepLinkIntent(intent)
-
         installSplashScreen().apply {
-            setKeepOnScreenCondition { !viewModel.container.stateFlow.value.isAppLoaded }
+            setKeepOnScreenCondition {
+                !viewModel.container.stateFlow.value.isAppLoaded ||
+                    authRepository.state.value is AuthState.Loading
+            }
         }
 
         setContent {
             val context = LocalContext.current
             val isTv = isRunningOnTv()
             val uiState by viewModel.collectAsState()
+            val authState by authRepository.state.collectAsStateWithLifecycle()
             val scope = rememberCoroutineScope()
 
             LaunchedEffect(uiState.isAppLoaded) {
@@ -434,6 +438,14 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (!uiState.isAppLoaded) return@setContent
+
+            // Mandatory sign-in, nothing else in the app is reachable without an account
+            if (authState !is AuthState.SignedIn) {
+                if (authState is AuthState.SignedOut) {
+                    WireguardAutoTunnelTheme(theme = uiState.theme) { SignInScreen() }
+                }
+                return@setContent
+            }
 
             // Refresh tiles on tunnel size changes to catch deletes and adds
             LaunchedEffect(uiState.tunnelNames.size) { TunnelTileRefresher.refresh(context) }
@@ -753,7 +765,6 @@ class MainActivity : AppCompatActivity() {
                                                 entry<Route.Language> { LanguageScreen() }
                                                 entry<Route.Display> { DisplayScreen() }
                                                 entry<Route.Notifications> { NotificationsScreen() }
-                                                entry<Route.Logs> { LogsScreen() }
                                                 entry<Route.Support> { SupportScreen() }
                                                 entry<Route.License> { LicenseScreen() }
                                                 entry<Route.Donate> { DonateScreen() }
@@ -858,16 +869,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun handleWgDeepLinkIntent(intent: Intent) {
-        if (intent.action == Intent.ACTION_VIEW) {
-            val uri = intent.data ?: return
-            if (uri.scheme == "wg") {
-                val httpsUrl = uri.toString().replaceFirst("wg://", "https://")
-                viewModel.promptWgImport(httpsUrl)
-            }
-        }
-    }
-
     override fun onResume() {
         super.onResume()
         networkMonitor.checkPermissionsAndUpdateState()
@@ -952,8 +953,6 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleConfigFileIntent(intent)
-        handleWgDeepLinkIntent(intent)
         enqueueSupportDeepLink(intent)
     }
 
@@ -967,25 +966,5 @@ class MainActivity : AppCompatActivity() {
         intent.removeExtra(EXTRA_OPEN_SUPPORT)
         intent.removeExtra(EXTRA_AUTO_UPDATE)
         supportDeepLinkChannel.trySend(autoUpdate)
-    }
-
-    private fun handleConfigFileIntent(intent: Intent?) {
-        intent ?: return
-        when (intent.action) {
-            Intent.ACTION_VIEW,
-            Intent.ACTION_EDIT,
-            Intent.ACTION_SEND -> {
-                val uri: Uri? = intent.data ?: return
-                val name = uri?.lastPathSegment?.lowercase() ?: return
-                if (
-                    !name.endsWith(FileUtils.CONF_FILE_EXTENSION) &&
-                        !name.endsWith(FileUtils.ZIP_FILE_EXTENSION)
-                ) {
-                    Timber.d("Ignoring non-config URI in handleIncomingIntent: $uri")
-                    return
-                }
-                viewModel.importFromUri(uri)
-            }
-        }
     }
 }

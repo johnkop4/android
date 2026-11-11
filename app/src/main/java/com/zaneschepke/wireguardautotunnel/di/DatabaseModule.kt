@@ -12,6 +12,7 @@ import com.zaneschepke.wireguardautotunnel.data.migrations.MIGRATION_23_24
 import com.zaneschepke.wireguardautotunnel.data.migrations.MIGRATION_25_26
 import com.zaneschepke.wireguardautotunnel.data.migrations.MIGRATION_28_29
 import com.zaneschepke.wireguardautotunnel.data.repository.DataStoreAppStateRepository
+import com.zaneschepke.wireguardautotunnel.data.repository.DataStoreAuthRepository
 import com.zaneschepke.wireguardautotunnel.data.repository.InstalledAndroidPackageRepository
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomAutoTunnelSettingsRepository
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomDnsSettingsRepository
@@ -22,6 +23,7 @@ import com.zaneschepke.wireguardautotunnel.data.repository.RoomSettingsRepositor
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomTunnelGroupRepository
 import com.zaneschepke.wireguardautotunnel.data.repository.RoomTunnelRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.AppStateRepository
+import com.zaneschepke.wireguardautotunnel.domain.repository.AuthRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.AutoTunnelSettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.DnsSettingsRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.GeneralSettingRepository
@@ -74,6 +76,9 @@ val databaseModule = module {
 
     single<AppStateRepository> {
         DataStoreAppStateRepository(get(), get(named(Scope.APPLICATION)), get(named(Dispatcher.IO)))
+    }
+    single<AuthRepository> {
+        DataStoreAuthRepository(get(), get(named(Scope.APPLICATION)), get(named(Dispatcher.IO)))
     }
     singleOf(::RoomAutoTunnelSettingsRepository) bind AutoTunnelSettingsRepository::class
     singleOf(::RoomDnsSettingsRepository) bind DnsSettingsRepository::class

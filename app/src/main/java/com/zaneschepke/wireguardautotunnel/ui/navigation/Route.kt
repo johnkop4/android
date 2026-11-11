@@ -29,13 +29,6 @@ sealed class Route : NavKey {
 
     @Keep @Serializable data object License : Route()
 
-    @Keep
-    @Serializable
-    data object Logs : Route(), SecureRoute {
-        override val requiresProtection: Boolean
-            get() = true
-    }
-
     @Keep @Serializable data object Appearance : Route()
 
     @Keep @Serializable data object Language : Route()
@@ -215,8 +208,7 @@ enum class Tab(
                 Route.TunnelGlobals,
                 Route.Security,
                 Route.Monitoring,
-                Route.TunnelRecovery,
-                Route.Logs -> SETTINGS
+                Route.TunnelRecovery -> SETTINGS
                 is Route.Support,
                 Route.License,
                 Route.Donate,

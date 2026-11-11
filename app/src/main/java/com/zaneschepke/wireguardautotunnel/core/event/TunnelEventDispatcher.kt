@@ -169,6 +169,24 @@ class TunnelEventDispatcher(
                         )
                     }
 
+                    is TunnelErrorEvent.SignInRequired -> {
+                        showOrNotify(
+                            scope = scope,
+                            foregroundAction = {
+                                globalEffectRepository.post(
+                                    Snackbar(
+                                        message =
+                                            DynamicString(
+                                                context.getString(R.string.sign_in_required)
+                                            ),
+                                        type = ToastType.Error,
+                                    )
+                                )
+                            },
+                            backgroundAction = {},
+                        )
+                    }
+
                     is TunnelErrorEvent.InternalFailure -> {
                         showOrNotify(
                             scope = scope,

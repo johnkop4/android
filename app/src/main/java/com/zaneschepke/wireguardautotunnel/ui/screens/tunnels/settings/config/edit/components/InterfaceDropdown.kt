@@ -39,19 +39,6 @@ fun InterfaceDropdown(
             tonalElevation = 4.dp,
             shadowElevation = 4.dp,
         ) {
-            if (!uiState.isGlobalConfig)
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            if (uiState.ui.showScripts) stringResource(R.string.hide_scripts)
-                            else stringResource(R.string.show_scripts)
-                        )
-                    },
-                    onClick = {
-                        onToggleDropdown(false)
-                        onToggleScripts()
-                    },
-                )
             if (!uiState.isGlobalConfig && !uiState.globalSettings.amneziaEnabled)
                 DropdownMenuItem(
                     text = {

@@ -19,6 +19,8 @@ ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 licensee {
     allowedLicenses().forEach { allow(it) }
     allowedLicenseUrls().forEach { allowUrl(it) }
+    // Google sign-in (Credential Manager / Google Identity) ships under the Android SDK license
+    allowUrl("https://developer.android.com/studio/terms.html")
     allowDependency("com.github.T8RIN.QuickieExtended", "quickie-foss", "1.19.0") {
         because("FOSS library, but JitPack doesn't publish license metadata")
         allow("Apache-2.0")
@@ -68,6 +70,27 @@ configure<ApplicationExtension> {
         val languagesProvider = project.languageListProvider()
         val languagesArray = buildLanguagesArray(languagesProvider.get())
         buildConfigField("String[]", "LANGUAGES", "new String[]{ $languagesArray }")
+
+        // VPS project: values are baked in at build time from local.properties (or env vars)
+        // so that keys never land in version control.
+        fun vpsProperty(key: String, default: String = ""): String =
+            (LocalProperties.get(key) ?: System.getenv(key) ?: default)
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+        listOf(
+                "GOOGLE_WEB_CLIENT_ID" to "",
+                "VPS_WG_PRIVATE_KEY" to "",
+                "VPS_WG_ADDRESS" to "",
+                "VPS_WG_DNS" to "",
+                "VPS_WG_PEER_PUBLIC_KEY" to "",
+                "VPS_WG_PRESHARED_KEY" to "",
+                "VPS_WG_ENDPOINT" to "",
+                "VPS_WG_ALLOWED_IPS" to "0.0.0.0/0, ::/0",
+                "VPS_WG_PERSISTENT_KEEPALIVE" to "25",
+            )
+            .forEach { (key, default) ->
+                buildConfigField("String", key, "\"${vpsProperty(key, default)}\"")
+            }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -257,6 +280,9 @@ dependencies {
     // Misc utilities
     implementation(libs.bundles.misc.utilities)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
+
+    // Google sign-in
+    implementation(libs.bundles.google.signin)
 
     // Accompanist
     implementation(libs.bundles.accompanist)

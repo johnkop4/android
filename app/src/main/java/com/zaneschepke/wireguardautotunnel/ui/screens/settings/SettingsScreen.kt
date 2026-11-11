@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.ViewQuilt
 import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.Autorenew
@@ -18,16 +19,16 @@ import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
-import androidx.compose.material.icons.outlined.Terminal
-import androidx.compose.material.icons.outlined.ViewHeadline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,16 +42,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dokar.sonner.ToastType
 import com.zaneschepke.wireguardautotunnel.MainActivity
 import com.zaneschepke.wireguardautotunnel.R
+import com.zaneschepke.wireguardautotunnel.core.auth.GoogleSignInClient
 import com.zaneschepke.wireguardautotunnel.domain.enums.TunnelMode
+import com.zaneschepke.wireguardautotunnel.domain.model.AuthState
+import com.zaneschepke.wireguardautotunnel.domain.repository.AuthRepository
 import com.zaneschepke.wireguardautotunnel.ui.LocalIsAndroidTV
 import com.zaneschepke.wireguardautotunnel.ui.LocalNavController
 import com.zaneschepke.wireguardautotunnel.ui.common.button.PreferenceTrailing
 import com.zaneschepke.wireguardautotunnel.ui.common.button.SurfaceRow
-import com.zaneschepke.wireguardautotunnel.ui.common.button.SwitchWithDivider
-import com.zaneschepke.wireguardautotunnel.ui.common.button.ThemedSwitch
+import com.zaneschepke.wireguardautotunnel.ui.common.dialog.InfoDialog
 import com.zaneschepke.wireguardautotunnel.ui.common.functions.rememberFileImportLauncherForResult
 import com.zaneschepke.wireguardautotunnel.ui.common.label.GroupLabel
 import com.zaneschepke.wireguardautotunnel.ui.common.text.DescriptionText
@@ -64,7 +68,9 @@ import com.zaneschepke.wireguardautotunnel.util.extensions.asTitleString
 import com.zaneschepke.wireguardautotunnel.util.extensions.capitalize
 import com.zaneschepke.wireguardautotunnel.viewmodel.SettingsViewModel
 import com.zaneschepke.wireguardautotunnel.viewmodel.SharedAppViewModel
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinActivityViewModel
 import org.orbitmvi.orbit.compose.collectAsState
 
@@ -72,8 +78,13 @@ import org.orbitmvi.orbit.compose.collectAsState
 fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel(),
     sharedViewModel: SharedAppViewModel = koinActivityViewModel(),
+    authRepository: AuthRepository = koinInject(),
+    signInClient: GoogleSignInClient = koinInject(),
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val authState by authRepository.state.collectAsStateWithLifecycle()
+    var showSignOutDialog by rememberSaveable { mutableStateOf(false) }
     val navController = LocalNavController.current
     val isTv = LocalIsAndroidTV.current
 
@@ -158,6 +169,19 @@ fun SettingsScreen(
         )
     }
 
+    if (showSignOutDialog) {
+        InfoDialog(
+            onDismiss = { showSignOutDialog = false },
+            onAttest = {
+                showSignOutDialog = false
+                scope.launch { signInClient.signOut() }
+            },
+            title = stringResource(R.string.sign_out),
+            body = { Text(stringResource(R.string.sign_out_message)) },
+            confirmText = stringResource(R.string.yes),
+        )
+    }
+
     if (showAppModeSheet)
         AppModeBottomSheet(sharedViewModel::setAppMode, uiState.settings.tunnelMode) {
             showAppModeSheet = false
@@ -239,23 +263,6 @@ fun SettingsScreen(
                 description = { DescriptionText(stringResource(R.string.tunnel_globals_desc)) },
             )
             SurfaceRow(
-                leading = { Icon(Icons.Outlined.Terminal, contentDescription = null) },
-                title = stringResource(R.string.tunnel_scripting),
-                trailing = { modifier ->
-                    ThemedSwitch(
-                        checked = uiState.settings.tunnelScriptingEnabled,
-                        onClick = { viewModel.setTunnelScriptedEnabled(it) },
-                        modifier = modifier,
-                    )
-                },
-                description = {
-                    DescriptionText(stringResource(R.string.root_required_template, "").trim())
-                },
-                onClick = {
-                    viewModel.setTunnelScriptedEnabled(!uiState.settings.tunnelScriptingEnabled)
-                },
-            )
-            SurfaceRow(
                 leading = { Icon(Icons.Outlined.Autorenew, contentDescription = null) },
                 title = stringResource(R.string.tunnel_recovery),
                 onClick = { navController.push(Route.TunnelRecovery) },
@@ -289,19 +296,6 @@ fun SettingsScreen(
                 onClick = { navController.push(Route.Security) },
             )
             SurfaceRow(
-                leading = { Icon(Icons.Outlined.ViewHeadline, contentDescription = null) },
-                title = stringResource(R.string.local_logging),
-                trailing = { modifier ->
-                    SwitchWithDivider(
-                        checked = uiState.monitoring.isLocalLogsEnabled,
-                        onClick = { viewModel.setLocalLogging(it) },
-                        modifier = modifier,
-                    )
-                },
-                description = { DescriptionText(stringResource(R.string.local_logging_desc)) },
-                onClick = { navController.push(Route.Logs) },
-            )
-            SurfaceRow(
                 leading = { Icon(Icons.Outlined.SettingsBackupRestore, contentDescription = null) },
                 title = stringResource(R.string.backup_and_restore),
                 onClick = { showBackupSheet = true },
@@ -313,6 +307,16 @@ fun SettingsScreen(
                         )
                     }
                 },
+            )
+            SurfaceRow(
+                leading = { Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = null) },
+                title = stringResource(R.string.sign_out),
+                description = {
+                    (authState as? AuthState.SignedIn)?.let {
+                        DescriptionText(stringResource(R.string.signed_in_as, it.user.email))
+                    }
+                },
+                onClick = { showSignOutDialog = true },
             )
         }
     }

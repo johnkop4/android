@@ -31,6 +31,9 @@ class DataStoreManager(
         val shouldShowDonationSnackbar = booleanPreferencesKey("SHOW_DONATION_SNACK")
         val desktopPromptShown = booleanPreferencesKey("DESKTOP_PROMPT_SHOWN")
         val lastActiveTunnelIds = stringPreferencesKey("LAST_ACTIVE_TUNNEL_IDS")
+        val authUserId = stringPreferencesKey("AUTH_USER_ID")
+        val authUserEmail = stringPreferencesKey("AUTH_USER_EMAIL")
+        val authUserName = stringPreferencesKey("AUTH_USER_NAME")
     }
 
     suspend fun init() {

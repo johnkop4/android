@@ -53,6 +53,8 @@ lifecycleViewmodelNavigation3 = "2.11.0"
 sonner = "0.4.0"
 core = "1.9.10"
 aboutlibraries = "15.3.0"
+credentials = "1.5.0"
+googleid = "1.1.1"
 
 [bundles]
 # Core AndroidX foundations
@@ -102,6 +104,9 @@ ui-utilities = ["pin-lock-compose", "qrose", "reorderable", "quickie-foss", "and
 # Misc utilities
 misc-utilities = ["semver4j", "icmp4a", "slf4j-android", "timber"]
 
+# Google sign-in
+google-signin = ["androidx-credentials", "androidx-credentials-play-services-auth", "googleid"]
+
 # Appcompat and storage
 androidx-appcompat = ["androidx-appcompat"]
 androidx-storage = ["androidx-storage"]
@@ -110,6 +115,11 @@ androidx-storage = ["androidx-storage"]
 # accompanist
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "accompanist" }
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanist" }
+
+# google sign-in
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 
 # core
 androidx-core = { module = "androidx.core:core", version.ref = "coreKtx" }

@@ -2,7 +2,6 @@ package com.zaneschepke.wireguardautotunnel.viewmodel
 
 import androidx.lifecycle.ViewModel
 import com.dokar.sonner.ToastType
-import com.wgtunnel.backend.shell.ShellExecutor
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.core.orchestration.TunnelCoordinator
 import com.zaneschepke.wireguardautotunnel.core.shortcut.ShortcutManager
@@ -111,10 +110,6 @@ class SettingsViewModel(
         settingsRepository.upsert(state.settings.copy(isGlobalSplitTunnelEnabled = to))
     }
 
-    fun setLocalLogging(to: Boolean) = intent {
-        monitoringRepository.upsert(state.monitoring.copy(isLocalLogsEnabled = to))
-    }
-
     fun setRemoteEnabled(to: Boolean) = intent {
         val key =
             state.settings.remoteKey?.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString()
@@ -129,26 +124,6 @@ class SettingsViewModel(
                 ToastType.Success,
             )
         )
-    }
-
-    fun setTunnelScriptedEnabled(to: Boolean) = intent {
-        if (to) {
-            val accepted = ShellExecutor.requestPrivilegedAccess()
-            if (!accepted)
-                return@intent postSideEffect(
-                    GlobalSideEffect.Snackbar(
-                        StringValue.StringResource(R.string.error_root_denied),
-                        ToastType.Error,
-                    )
-                )
-            postSideEffect(
-                GlobalSideEffect.Snackbar(
-                    StringValue.StringResource(R.string.root_accepted),
-                    ToastType.Success,
-                )
-            )
-        }
-        settingsRepository.upsert(state.settings.copy(tunnelScriptingEnabled = to))
     }
 
     fun setSeamlessRecovery(enabled: Boolean) = intent {

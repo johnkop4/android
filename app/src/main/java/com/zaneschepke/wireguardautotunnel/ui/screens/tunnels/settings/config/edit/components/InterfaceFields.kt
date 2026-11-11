@@ -47,10 +47,6 @@ fun InterfaceFields(uiState: ConfigUiState, onInterfaceChange: (EditableInterfac
             globalDnsServers = managedDns,
         )
 
-        if (uiState.ui.showScripts) {
-            ScriptsSection(uiState.draft.config.`interface`, onInterfaceChange)
-        }
-
         if (
             (!uiState.isGlobalConfig && (uiState.ui.showAmneziaValues || managedAmnezia != null)) ||
                 (uiState.isGlobalConfig && uiState.globalSettings.amneziaEnabled)

@@ -13,6 +13,8 @@ sealed interface TunnelErrorEvent {
 
     data class ConfigMissingDns(val tunnelId: Int) : TunnelErrorEvent
 
+    data class SignInRequired(val tunnelId: Int) : TunnelErrorEvent
+
     companion object {
         fun from(throwable: Throwable, id: Int): TunnelErrorEvent {
             return when (throwable) {

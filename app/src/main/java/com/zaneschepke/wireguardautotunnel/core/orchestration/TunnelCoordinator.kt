@@ -19,6 +19,7 @@ import com.zaneschepke.wireguardautotunnel.domain.model.MonitoringSettings
 import com.zaneschepke.wireguardautotunnel.domain.model.ProxySettings
 import com.zaneschepke.wireguardautotunnel.domain.model.TunnelConfig
 import com.zaneschepke.wireguardautotunnel.domain.repository.AppStateRepository
+import com.zaneschepke.wireguardautotunnel.domain.repository.AuthRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.GeneralSettingRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.GlobalEffectRepository
 import com.zaneschepke.wireguardautotunnel.domain.repository.LockdownSettingsRepository
@@ -57,6 +58,7 @@ class TunnelCoordinator(
     proxyRepository: ProxySettingsRepository,
     lockdownModeRepository: LockdownSettingsRepository,
     private val appStateRepository: AppStateRepository,
+    private val authRepository: AuthRepository,
     scope: CoroutineScope,
 ) {
 
@@ -142,7 +144,7 @@ class TunnelCoordinator(
                             .updateTunnel(
                                 config.toBackendTunnel(
                                     payload.monitoring,
-                                    payload.general.tunnelScriptingEnabled,
+                                    scriptsEnabled = false,
                                     payload.general,
                                 )
                             )
@@ -257,6 +259,12 @@ class TunnelCoordinator(
         tunnelConfig: TunnelConfig,
         source: TunnelActionSource,
     ) {
+        // Every start path (UI, tile, auto-tunnel, boot, remote control) ends up here
+        if (!authRepository.isSignedIn()) {
+            Timber.w("Refusing to start tunnel ${tunnelConfig.id}, no signed in user")
+            _errors.emit(TunnelErrorEvent.SignInRequired(tunnelConfig.id))
+            return
+        }
 
         val snapshot = getSnapshot()
         val settings = snapshot.general
@@ -324,7 +332,7 @@ class TunnelCoordinator(
                 tunnel =
                     tunnelConfig.toBackendTunnel(
                         monitoringSettings,
-                        settings.tunnelScriptingEnabled,
+                        scriptsEnabled = false,
                         settings,
                     ),
                 mode = backendMode,

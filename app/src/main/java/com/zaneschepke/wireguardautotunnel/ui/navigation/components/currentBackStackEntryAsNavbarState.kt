@@ -12,10 +12,8 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RemoveRedEye
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.NetworkCheck
 import androidx.compose.material.icons.rounded.Reorder
 import androidx.compose.material.icons.rounded.Save
@@ -57,7 +55,6 @@ import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.License
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.LocationDisclosure
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.Lock
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.LockdownSettings
-import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.Logs
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.Monitoring
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.Notifications
 import com.zaneschepke.wireguardautotunnel.ui.navigation.Route.PreferredTunnel
@@ -176,24 +173,6 @@ fun currentRouteAsNavbarState(
                 }
                 Lock -> {
                     NavbarState(showBottomItems = false)
-                }
-                Logs -> {
-                    NavbarState(
-                        topLeading = { TvBackButton { navController.pop() } },
-                        showBottomItems = false,
-                        topTitle = context.getString(R.string.logs),
-                        topTrailing = {
-                            IconButton(
-                                onClick = {
-                                    sharedViewModel.postSideEffect(
-                                        LocalSideEffect.Sheet.LoggerActions
-                                    )
-                                }
-                            ) {
-                                Icon(Icons.Rounded.Menu, stringResource(R.string.quick_actions))
-                            }
-                        },
-                    )
                 }
                 ProxySettings -> {
                     NavbarState(
@@ -462,18 +441,6 @@ fun currentRouteAsNavbarState(
                                     var showOverflowMenu by remember { mutableStateOf(false) }
                                     val showTunnelMenu = globalState.tunnelNames.size > 1
                                     Row {
-                                        IconButton(
-                                            onClick = {
-                                                sharedViewModel.postSideEffect(
-                                                    LocalSideEffect.Sheet.ImportTunnels
-                                                )
-                                            }
-                                        ) {
-                                            Icon(
-                                                Icons.Rounded.Add,
-                                                stringResource(R.string.add_tunnel),
-                                            )
-                                        }
                                         if (showTunnelMenu) {
                                             IconButton(onClick = { showOverflowMenu = true }) {
                                                 Icon(

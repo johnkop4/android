@@ -61,16 +61,6 @@ class DnsViewModel(
                 .collect { newState -> reduce { newState } }
         }
 
-    fun setBootstrapDnsProtocol(to: BootstrapDnsProtocol) = intent {
-        reduce {
-            state.copy(
-                dnsSettings =
-                    state.dnsSettings.copy(bootstrapDnsProtocol = to, bootstrapDnsEndpoint = null),
-                bootstrapEndpointError = null,
-            )
-        }
-    }
-
     fun setTunnelDnsProtocol(to: TunnelDnsProtocol) = intent {
         reduce {
             state.copy(
@@ -81,27 +71,12 @@ class DnsViewModel(
     }
 
     fun save(restart: Boolean = false) = intent {
-        val settings = state.dnsSettings
-
-        when (
-            val r =
-                DnsValidator.validateEndpoint(
-                    settings.bootstrapDnsProtocol.toCore(),
-                    settings.bootstrapDnsEndpoint,
-                )
-        ) {
-            is DnsValidator.Result.Invalid -> {
-                reduce { state.copy(bootstrapEndpointError = r.error) }
-                postSideEffect(
-                    GlobalSideEffect.Snackbar(
-                        StringValue.StringResource(r.error.labelRes()),
-                        type = ToastType.Error,
-                    )
-                )
-                return@intent
-            }
-            DnsValidator.Result.Valid -> Unit
-        }
+        // Peer resolution is locked to the system resolver
+        val settings =
+            state.dnsSettings.copy(
+                bootstrapDnsProtocol = BootstrapDnsProtocol.SYSTEM,
+                bootstrapDnsEndpoint = null,
+            )
 
         val usesTunnelDns =
             settings.tunnelDnsMode.isSplitMode() &&
@@ -159,12 +134,6 @@ class DnsViewModel(
 
         val updated =
             settings.copy(
-                bootstrapDnsEndpoint =
-                    DnsValidator.normalizeEndpoint(
-                            settings.bootstrapDnsProtocol.toCore(),
-                            settings.bootstrapDnsEndpoint,
-                        )
-                        .ifEmpty { null },
                 tunnelDnsEndpoint =
                     when (settings.tunnelDnsMode) {
                         TunnelDnsMode.Encrypted,
@@ -190,7 +159,7 @@ class DnsViewModel(
             )
 
         dnsSettingsRepository.upsert(updated)
-        dnsSettingsCoordinator.appyDnsSettings(updated)
+        dnsSettingsCoordinator.applyDnsSettings()
         if (restart) tunnelCoordinator.restartActiveTunnels()
         postSideEffect(GlobalSideEffect.PopBackStack)
         postSideEffect(
@@ -199,15 +168,6 @@ class DnsViewModel(
                 ToastType.Success,
             )
         )
-    }
-
-    fun setBootstrapDnsEndpoint(input: String) = intent {
-        reduce {
-            state.copy(
-                dnsSettings = state.dnsSettings.copy(bootstrapDnsEndpoint = input),
-                bootstrapEndpointError = null,
-            )
-        }
     }
 
     fun setLocalDomainSuffixes(input: String) = intent {

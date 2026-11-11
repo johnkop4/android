@@ -10,9 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.CallMerge
 import androidx.compose.material.icons.automirrored.outlined.CallSplit
-import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.DataUsage
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Star
@@ -59,24 +57,6 @@ fun TunnelSettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top),
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
     ) {
-        Column {
-            GroupLabel(
-                stringResource(R.string.configuration),
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            SurfaceRow(
-                leading = { Icon(Icons.Outlined.Description, contentDescription = null) },
-                title = stringResource(R.string.view_configuration),
-                onClick = { navController.push(Route.Config(tunnel.id)) },
-            )
-            if (uiState.activeConfig != null) {
-                SurfaceRow(
-                    leading = { Icon(Icons.Outlined.Bolt, contentDescription = null) },
-                    title = stringResource(R.string.view_live_tunnel),
-                    onClick = { navController.push(Route.Config(tunnel.id, true)) },
-                )
-            }
-        }
         Column {
             GroupLabel(
                 stringResource(R.string.general),
